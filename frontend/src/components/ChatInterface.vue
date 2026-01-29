@@ -100,7 +100,11 @@ async function sendMessage() {
   isLoading.value = true;
 
   try {
-    const response = await axios.post('http://127.0.0.1:8000/api/chat/', { text: userMsg });
+    // Use same-origin API in production (works on mobile too).
+    // When deployed (Django + Vue on same domain), this becomes:
+    // https://yourdomain/api/chat/
+    const apiUrl = new URL('/api/chat/', window.location.origin).toString();
+    const response = await axios.post(apiUrl, { text: userMsg });
     const botResponse = response?.data?.response ?? '';
     addMessage('bot', botResponse || 'Пустой ответ от сервера.', { isError: !botResponse });
   } catch (error: any) {
