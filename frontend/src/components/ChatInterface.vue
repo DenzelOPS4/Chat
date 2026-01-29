@@ -100,7 +100,7 @@ async function sendMessage() {
   isLoading.value = true;
 
   try {
-    const response = await axios.post('http://127.0.0.1:8000/api/chat/', { text: userMsg });
+    const response = await axios.post('https://chat-u7b1.onrender.com/api/chat/', { text: userMsg });
     const botResponse = response?.data?.response ?? '';
     addMessage('bot', botResponse || 'Пустой ответ от сервера.', { isError: !botResponse });
   } catch (error: any) {
