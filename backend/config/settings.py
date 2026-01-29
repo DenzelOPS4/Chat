@@ -130,9 +130,4 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-_cors_all = os.getenv("CORS_ALLOW_ALL_ORIGINS", "").strip().lower()
-CORS_ALLOW_ALL_ORIGINS = DEBUG or (_cors_all in ("1", "true", "yes", "y", "on"))
-
-_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
-CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(",") if o.strip()] if _cors_origins else []
-
+CORS_ALLOW_ALL_ORIGINS = True
