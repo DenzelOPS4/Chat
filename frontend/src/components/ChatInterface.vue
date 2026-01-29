@@ -116,201 +116,275 @@ async function sendMessage() {
 </script>
 
 <template>
-  <!-- Page background -->
-  <div class="min-h-screen w-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
-    <!-- Chat window -->
-    <section
-      class="w-full max-w-3xl h-[86vh] max-h-[860px] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-white/70 backdrop-blur-xl flex flex-col"
-      aria-label="Чат"
-    >
-      <!-- Header -->
-      <header class="shrink-0 bg-gradient-to-r from-emerald-700 to-teal-700 text-white px-5 py-4 flex items-center gap-4">
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2">
-            <h1 class="font-semibold text-xl leading-tight truncate">Чат-Бот</h1>
-            <span class="inline-flex items-center gap-1 text-xs opacity-90 shrink-0">
-              <span class="w-2 h-2 rounded-full bg-emerald-200"></span>
-              <span v-if="isLoading">печатает…</span>
-            </span>
-          </div>
-          <p class="text-sm opacity-90 truncate">Чат с голосовым вводом</p>
-        </div>
-      </header>
+  <div class="landing">
+    <!-- small icon top-left -->
+    <div class="appIcon" aria-hidden="true">
+      <span class="dot"></span>
+    </div>
 
-      <!-- Messages -->
-      <main
-        ref="messagesContainer"
-        class="chatScroll chatBg flex-1 overflow-y-auto px-4 py-5 md:px-6 md:py-6"
-      >
-        <div class="mx-auto w-full max-w-2xl space-y-4">
-          <div v-if="messages.length === 0" class="pt-6 flex justify-center">
-            <div class="max-w-lg text-center bg-white/85 border border-slate-200 rounded-2xl px-5 py-4 shadow-sm backdrop-blur">
-              <div class="text-2xl mb-2">👋</div>
-              <div class="text-slate-800 font-medium">Привет! Я AI-ассистент.</div>
-              <div class="text-slate-600 text-sm mt-1">
-                Напишите сообщение или нажмите на кнопку микрофона.
-              </div>
-            </div>
-          </div>
+    <!-- center hero -->
+    <div class="hero">
+      <h2 class="heroHello">Hi there!</h2>
+      <h1 class="heroTitle">What would you like to know?</h1>
+      <p class="heroSub">
+        Use one of the most common prompts below<br />
+        or ask your own question
+      </p>
+    </div>
 
-          <div v-for="msg in messages" :key="msg.id" :class="['flex', msg.sender === 'user' ? 'justify-end' : 'justify-start']">
-            <div
-              :class="[
-                'bubble msgPop max-w-[90%] sm:max-w-[78%] rounded-2xl px-4 py-3 border',
-                msg.sender === 'user'
-                  ? 'bubbleUser bg-emerald-600 text-white border-emerald-700/20 rounded-br-md shadow-[0_8px_24px_rgba(16,185,129,0.20)]'
-                  : 'bubbleBot bg-white text-slate-900 border-slate-200 rounded-bl-md shadow-[0_10px_28px_rgba(15,23,42,0.08)]',
-                msg.isError ? 'bubbleError bg-rose-50 text-rose-800 border-rose-200 shadow-[0_10px_28px_rgba(244,63,94,0.12)]' : ''
-              ]"
-            >
-              <div class="whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed">
-                {{ msg.text }}
-              </div>
-              <div class="mt-2 flex items-center justify-end gap-2 text-[11px] opacity-80 select-none">
-                <span>{{ msg.timestamp }}</span>
-                <span v-if="msg.sender === 'user'" class="font-semibold">✓✓</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Loading bubble -->
-          <div v-if="isLoading" class="flex justify-start">
-            <div class="bubble bubbleBot bg-white border border-slate-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm inline-flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-slate-500 animate-bounce" style="animation-delay: 0s"></span>
-              <span class="w-2 h-2 rounded-full bg-slate-500 animate-bounce" style="animation-delay: 0.15s"></span>
-              <span class="w-2 h-2 rounded-full bg-slate-500 animate-bounce" style="animation-delay: 0.3s"></span>
+    <!-- messages (optional): show only after first message -->
+    <main v-if="messages.length" ref="messagesContainer" class="messages">
+      <div class="messagesInner">
+        <div
+          v-for="msg in messages"
+          :key="msg.id"
+          :class="['msgRow', msg.sender === 'user' ? 'right' : 'left']"
+        >
+          <div :class="['msgBubble', msg.sender === 'user' ? 'user' : 'bot', msg.isError ? 'err' : '']">
+            <div class="msgText">{{ msg.text }}</div>
+            <div class="msgMeta">
+              <span>{{ msg.timestamp }}</span>
+              <span v-if="msg.sender === 'user'" class="ticks">✓✓</span>
             </div>
           </div>
         </div>
-      </main>
 
-      <!-- Composer -->
-      <footer class="shrink-0 border-t border-slate-200 bg-white/80 backdrop-blur px-3 py-3">
-        <div class="mx-auto w-full max-w-2xl flex items-center gap-3">
-          <!-- Mic (use emoji to avoid SVG rendering issues) -->
-          <button
-            type="button"
-            @click="toggleRecording"
-            :class="[
-              'btnIcon w-12 h-12 rounded-full grid place-items-center text-2xl shadow-sm border transition-colors select-none',
-              isRecording ? 'bg-rose-500 border-rose-400 text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
-            ]"
-            title="Голосовой ввод"
-            aria-label="Голосовой ввод"
-          >
-            🎙️
-          </button>
-
-          <!-- Input -->
-          <div class="flex-1">
-            <input
-              v-model="inputText"
-              @keyup.enter="sendMessage"
-              type="text"
-              class="composerInput w-full h-12 rounded-2xl border border-slate-200 bg-white px-4 text-[16px] text-slate-900 placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400"
-              placeholder="Сообщение…"
-            />
+        <div v-if="isLoading" class="msgRow left">
+          <div class="msgBubble bot">
+            <span class="typingDot" style="animation-delay:0s"></span>
+            <span class="typingDot" style="animation-delay:.15s"></span>
+            <span class="typingDot" style="animation-delay:.3s"></span>
           </div>
-
-          <!-- Send (emoji to avoid SVG rendering issues) -->
-          <button
-            type="button"
-            @click="sendMessage"
-            :disabled="!canSend"
-            class="btnPrimary w-12 h-12 rounded-full grid place-items-center text-2xl shadow-sm transition-colors select-none disabled:opacity-50 disabled:cursor-not-allowed bg-emerald-600 hover:bg-emerald-700 text-white"
-            aria-label="Отправить"
-            title="Отправить"
-          >
-            ➤
-          </button>
         </div>
-      </footer>
-    </section>
+      </div>
+    </main>
+
+    <!-- bottom composer -->
+    <footer class="composer">
+      <div class="composerBar">
+        <button
+          type="button"
+          class="micBtn"
+          :class="{ rec: isRecording }"
+          @click="toggleRecording"
+          title="Голосовой ввод"
+          aria-label="Голосовой ввод"
+        >
+          🎙️
+        </button>
+
+        <input
+          v-model="inputText"
+          @keyup.enter="sendMessage"
+          class="composerInput"
+          type="text"
+          placeholder="Ask whatever you want"
+        />
+
+        <button
+          type="button"
+          class="sendBtn"
+          @click="sendMessage"
+          :disabled="!canSend"
+          aria-label="Отправить"
+          title="Отправить"
+        >
+          ➤
+        </button>
+      </div>
+    </footer>
   </div>
 </template>
 
 <style scoped>
-/* Subtle WhatsApp-ish background without external images */
-.chatBg {
-  background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(16, 185, 129, 0.16), transparent 55%),
-    radial-gradient(900px 500px at 110% 30%, rgba(14, 165, 233, 0.10), transparent 55%),
-    radial-gradient(900px 500px at -10% 70%, rgba(99, 102, 241, 0.08), transparent 55%),
-    linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(241, 245, 249, 1) 100%);
-}
-
-/* Prettier scrollbars */
-.chatScroll::-webkit-scrollbar {
-  width: 10px;
-}
-.chatScroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-.chatScroll::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.18);
-  border-radius: 999px;
-  border: 3px solid transparent;
-  background-clip: content-box;
-}
-.chatScroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 23, 42, 0.28);
-  border: 3px solid transparent;
-  background-clip: content-box;
-}
-
-/* Bubble tails (pseudo-elements) */
-.bubble {
+/* full-screen dark blue background */
+.landing {
+  min-height: 100vh;
+  width: 100%;
+  background: #0b2a57;
   position: relative;
-}
-.bubbleUser::after {
-  content: '';
-  position: absolute;
-  right: -6px;
-  bottom: 10px;
-  width: 12px;
-  height: 12px;
-  background: #059669; /* emerald-600 */
-  transform: rotate(45deg);
-  border-radius: 2px;
-  opacity: 0.9;
-}
-.bubbleBot::after {
-  content: '';
-  position: absolute;
-  left: -6px;
-  bottom: 10px;
-  width: 12px;
-  height: 12px;
-  background: #ffffff;
-  transform: rotate(45deg);
-  border-radius: 2px;
-  box-shadow: -1px 1px 0 rgba(226, 232, 240, 1); /* slate-200 edge */
-}
-.bubbleError::after {
-  /* keep tail but match error bubble */
-  background: #fff1f2; /* rose-50 */
-  box-shadow: -1px 1px 0 rgba(254, 205, 211, 1);
+  overflow: hidden;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji";
 }
 
-/* Small pop animation for messages */
-@keyframes msgPopIn {
-  0% { transform: translateY(6px) scale(0.98); opacity: 0; }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+/* top-left rounded square icon */
+.appIcon {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  display: grid;
+  place-items: center;
 }
-.msgPop {
-  animation: msgPopIn 180ms ease-out;
+.appIcon .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.80);
 }
 
-/* Buttons feel more “app-like” */
-.btnIcon:active,
-.btnPrimary:active {
-  transform: translateY(1px);
+/* centered hero text */
+.hero {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 24px;
+  pointer-events: none;
+}
+.heroHello {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.15;
+}
+.heroTitle {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1.15;
+}
+.heroSub {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* messages area (appears after first message) */
+.messages {
+  position: absolute;
+  top: 92px;
+  left: 0;
+  right: 0;
+  bottom: 110px;
+  overflow: auto;
+  padding: 0 18px;
+}
+.messagesInner {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.msgRow {
+  display: flex;
+}
+.msgRow.left { justify-content: flex-start; }
+.msgRow.right { justify-content: flex-end; }
+
+.msgBubble {
+  max-width: min(78ch, 92%);
+  border-radius: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+}
+.msgBubble.user {
+  background: rgba(255, 255, 255, 0.10);
+}
+.msgBubble.err {
+  background: rgba(255, 80, 120, 0.12);
+  border-color: rgba(255, 80, 120, 0.22);
+  color: rgba(255, 210, 220, 0.98);
+}
+.msgText {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.msgMeta {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  font-size: 11px;
+  opacity: 0.75;
+  user-select: none;
+}
+.ticks { font-weight: 700; }
+
+/* typing dots */
+.typingDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-right: 6px;
+  background: rgba(255, 255, 255, 0.75);
+  animation: bounce 0.9s infinite ease-in-out;
+}
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* bottom input bar */
+.composer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 26px;
+  padding: 0 18px;
+}
+.composerBar {
+  max-width: 860px;
+  margin: 0 auto;
+  height: 54px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  backdrop-filter: blur(10px);
+}
+
+.micBtn, .sendBtn {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.90);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+.micBtn.rec {
+  background: rgba(255, 80, 120, 0.70);
+  border-color: rgba(255, 80, 120, 0.35);
+}
+.sendBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .composerInput {
-  transition: box-shadow 160ms ease, border-color 160ms ease;
+  flex: 1;
+  height: 42px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 16px;
 }
-.composerInput:focus {
-  box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.15);
+.composerInput::placeholder {
+  color: rgba(255, 255, 255, 0.55);
 }
 </style>
